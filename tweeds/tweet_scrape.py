@@ -76,7 +76,7 @@ def search_user_last_4_years(username: str, limit: int = None, json_output: str 
 if __name__ == '__main__':
     username_to_scrape = "@MOE_BHH_01_0047"
     # يمكنك تعديل هذه الخيارات حسب حاجتك
-    number_of_tweets = 100  # يمكنك تغيير هذا الرقم لعدد التغريدات التي تريدها
+    number_of_tweets = None  # يمكنك تغيير هذا الرقم لعدد التغريدات التي تريدها أو اتركه None لجلب الكل
     output_json_file = "moe_bhh_tweets_last_4_years.json"
     output_csv_file = "moe_bhh_tweets_last_4_years.csv"
     print_tweets_to_console = True
