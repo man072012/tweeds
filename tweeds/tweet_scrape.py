@@ -1,18 +1,14 @@
 import snscrape.modules.twitter as api
 import pandas as pd
 import json
-from tweeds.query import Query
-from datetime import date
-
+from datetime import date, timedelta
 
 def make_json(data, jsonFilePath):
     with open(jsonFilePath, 'w', encoding='utf-8') as jsonf:
         jsonf.write(json.dumps(data, indent=4))
 
-
 def printRes(tweet: api.Tweet):
     print(f"{tweet.id} {tweet.date} <{tweet.user.username}> {tweet.rawContent} \n")
-
 
 def toOBJ(tweet: api.Tweet) -> object:
     return {
@@ -32,69 +28,63 @@ def toOBJ(tweet: api.Tweet) -> object:
         "url": tweet.url
     }
 
+def search_user_last_4_years(username: str, limit: int = None, json_output: str = None, csv_output: str = None, silent: bool = False) -> None:
+    """
+    Search for tweets from a specific user for the last four years.
 
-def search(q: Query) -> None:
-    """Print tweets"""
-    query = ""
+    Args:
+        username (str): The username to search for (e.g., "MOE_BHH_01_0047").
+        limit (int, optional): The maximum number of tweets to retrieve. Defaults to None (no limit).
+        json_output (str, optional): Path to save the output in JSON format. Defaults to None.
+        csv_output (str, optional): Path to save the output in CSV format. Defaults to None.
+        silent (bool, optional): If True, don't print the tweets to the console. Defaults to False.
+    """
+    today = date.today()
+    four_years_ago = today - timedelta(days=4 * 365)  # تقريبي لـ 4 سنوات
 
-    if q.search:
-        query += f"{q.search} "
-    if q.username:
-        query += f"(from:{q.username}) "
-    if q.today:
-        today = date.today().strftime("%Y-%m-%d")
-        query += f"since:{today} "
-    if q.year:
-        query += f"since:{q.year}-01-01 "
-    if q.until:
-        query += f"until:{q.until} "
-    if q.since:
-        query += f"since:{q.since} "
-    if q.minLikes:
-        query += f"min_faves:{q.minLikes} "
-    if q.minReplies:
-        query += f" min_replies:{q.minReplies} "
-    if q.minRetweets:
-        query += f" min_retweets:{q.minRetweets} "
-    if q.near:
-        query += f"near:{q.near} "
-    if q.geoCode:
-        query += f"geocode:{q.geoCode} "
-    if q.verified:
-        query += f"filter:verified "
-    if q.media:
-        query += f"filter:media "
-    if q.videos and not q.media and not q.images:
-        query += f"filter:native_video "
-    if q.images and not q.media and not q.videos:
-        query += f"filter:images "
-    if q.links:
-        query += "-filter:links "
+    query = f"(from:{username}) since:{four_years_ago.strftime('%Y-%m-%d')} until:{today.strftime('%Y-%m-%d')}"
     jsonObj = {}
     csvObj = []
 
     for i, tweet in enumerate(api.TwitterSearchScraper(query).get_items()):
-        if q.limit:
-            if i == q.limit:
-                break
+        if limit and i == limit:
+            break
         jsonObj[tweet.id] = toOBJ(tweet)
         csvObj.append(
             [tweet.id, tweet.date, tweet.rawContent, tweet.url,
              tweet.likeCount, tweet.retweetCount, tweet.replyCount, tweet.sourceLabel[12:]]
         )
-        if q.silent:
-            if q.csv or q.json:
-                pass
-        else:
+        if not silent:
             printRes(tweet)
 
-    if q.json:
-        if q.json.find(".json") != -1:
-            make_json(jsonObj, q.json)
+    if json_output:
+        if json_output.endswith(".json"):
+            make_json(jsonObj, json_output)
             print("Output saved in JSON!")
+        else:
+            print("Error: JSON output file must end with '.json'")
 
-    if q.csv:
-        df = pd.DataFrame(
-            csvObj, columns=["ID", "Date", "Tweet", "URL", "Likes", "Retweet", "Replies", "Source"])
-        df.to_csv(q.csv)
-        print("Output saved in CSV!")
+    if csv_output:
+        if csv_output.endswith(".csv"):
+            df = pd.DataFrame(
+                csvObj, columns=["ID", "Date", "Tweet", "URL", "Likes", "Retweet", "Replies", "Source"])
+            df.to_csv(csv_output, encoding='utf-8')
+            print("Output saved in CSV!")
+        else:
+            print("Error: CSV output file must end with '.csv'")
+
+if __name__ == '__main__':
+    username_to_scrape = "@MOE_BHH_01_0047"
+    # يمكنك تعديل هذه الخيارات حسب حاجتك
+    number_of_tweets = 100  # يمكنك تغيير هذا الرقم لعدد التغريدات التي تريدها
+    output_json_file = "moe_bhh_tweets_last_4_years.json"
+    output_csv_file = "moe_bhh_tweets_last_4_years.csv"
+    print_tweets_to_console = True
+
+    search_user_last_4_years(
+        username=username_to_scrape.replace("@", ""), # قم بإزالة علامة @ عند تمرير اسم المستخدم إلى الدالة
+        limit=number_of_tweets,
+        json_output=output_json_file,
+        csv_output=output_csv_file,
+        silent=not print_tweets_to_console
+    )
